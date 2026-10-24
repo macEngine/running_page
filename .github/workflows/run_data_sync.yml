@@ -25,25 +25,27 @@ on:
       - requirements.txt
 
 env:
-  # please change to your own config.
-  RUN_TYPE: pass # support strava_web/strava/nike/garmin/coros/garmin_cn/garmin_sync_cn_global/keep/only_gpx/only_fit/nike_to_strava/strava_to_garmin/tcx_to_garmin/strava_to_garmin_cn/garmin_to_strava/garmin_to_strava_cn/oppo/intervals_icu/db_updater, Please change the 'pass' it to your own
-  ATHLETE: yihong0618
-  TITLE: Yihong0618 Running
+  RUN_TYPE: keep
+  ATHLETE: macEngine
+  TITLE: My Running Page
   MIN_GRID_DISTANCE: 10 # change min distance here
   TITLE_GRID: Over 10km Runs # also here
 
-  # IGNORE_BEFORE_SAVING: True # if you want to ignore some data before saving, set this to True
-  IGNORE_START_END_RANGE: 10 # Unit meter
-  # Dont making this huge, just picking points you needing. https://developers.google.com/maps/documentation/utilities/polylineutility using this tool to making your polyline
-  IGNORE_POLYLINE: 'ktjrFoemeU~IorGq}DeB'
-  IGNORE_RANGE: 10 # Unit meter
-  USE_CLOUDFLARE_WARP: false # If you want to use Cloudflare WARP to bypass network restrictions, set it to `true`. Currently only Garmin needs this.
-  SAVE_DATA_IN_GITHUB_CACHE: false # if you deploy in the vercel, check the README
+  # Privacy: trim 300m off the start AND end of every track so the start point
+  # (e.g. home address) is never published. This is the main privacy control.
+  IGNORE_START_END_RANGE: 300 # Unit meter
+  # Upstream author's coordinates removed. To mask specific places, generate a
+  # polyline with https://developers.google.com/maps/documentation/utilities/polylineutility
+  IGNORE_POLYLINE: ''
+  IGNORE_RANGE: 0 # Unit meter
+
+  USE_CLOUDFLARE_WARP: false # only Garmin needs this
+  SAVE_DATA_IN_GITHUB_CACHE: false # MUST stay false for Vercel: it builds from the repo
   DATA_CACHE_PREFIX: 'track_data'
-  BUILD_GH_PAGES: true # If you do not need GitHub Page please set it to `false`
-  SAVE_TO_PARQENT: false # If you want to save the data to the repo, set it to `true`
-  GENERATE_MONTH_OF_LIFE: true # If you want to generate the month of life, set it to `true`
-  BIRTHDAY_MONTH: 1989-03 # If you want to generate the month of life, set it to your birthday month, format is YYYY-MM
+  BUILD_GH_PAGES: false # deploying via Vercel, GitHub Pages not needed
+  SAVE_TO_PARQENT: false
+  GENERATE_MONTH_OF_LIFE: false # set true (and fix BIRTHDAY_MONTH) to get the month-of-life charts
+  BIRTHDAY_MONTH: 1990-01
 
 jobs:
   sync:
