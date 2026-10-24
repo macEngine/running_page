@@ -45,10 +45,14 @@ export function RouteMapCanvas({
     'loading'
   );
   const [retry, setRetry] = useState(0);
+  // Non-mapbox basemap used when no MAPBOX_TOKEN is configured. This was Carto
+  // (basemaps.cartocdn.com), which is unreachable from mainland China: the canvas
+  // stays blank and the 'basemap failed to load' retry appears. OpenFreeMap serves
+  // equivalent light/dark styles from a different host and needs no token.
   const style =
     provider === 'mapbox'
       ? `mapbox://styles/mapbox/${dark === false ? 'light' : 'dark'}-v11`
-      : `https://basemaps.cartocdn.com/gl/${dark === false ? 'positron' : 'dark-matter'}-gl-style/style.json`;
+      : `https://tiles.openfreemap.org/styles/${dark === false ? 'bright' : 'dark'}`;
 
   const displayActivity = useMemo(
     () =>
