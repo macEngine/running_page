@@ -43,7 +43,7 @@ env:
   USE_CLOUDFLARE_WARP: false # only Garmin needs this
   SAVE_DATA_IN_GITHUB_CACHE: false # MUST stay false for Vercel: it builds from the repo
   DATA_CACHE_PREFIX: 'track_data'
-  BUILD_GH_PAGES: false # deploying via Vercel, GitHub Pages not needed
+  BUILD_GH_PAGES: true # deploying via GitHub Pages (Settings > Pages > Source = GitHub Actions)
   SAVE_TO_PARQENT: false
   GENERATE_MONTH_OF_LIFE: false # set true (and fix BIRTHDAY_MONTH) to get the month-of-life charts
   BIRTHDAY_MONTH: 1990-01
@@ -305,3 +305,22 @@ jobs:
           echo "SAVE_DATA_IN_GITHUB_CACHE=$SAVE_DATA_IN_GITHUB_CACHE" >> "$GITHUB_OUTPUT"
           echo "DATA_CACHE_PREFIX=$DATA_CACHE_PREFIX" >> "$GITHUB_OUTPUT"
           echo "BUILD_GH_PAGES=$BUILD_GH_PAGES" >> "$GITHUB_OUTPUT"
+
+  publish_github_pages:
+    if: needs.sync.result == 'success' && needs.sync.outputs.BUILD_GH_PAGES == 'true'
+    name: Build and publish Github Pages
+    # These must be granted here on the CALLER too: permissions are validated at
+    # workflow startup (before the `if` above is evaluated), and a reusable
+    # workflow can never request more than its caller holds. Without this the
+    # whole run dies with "requesting 'pages: write, id-token: write', but is
+    # only allowed 'pages: none, id-token: none'".
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/gh-pages.yml
+    with:
+      save_data_in_github_cache: ${{needs.sync.outputs.SAVE_DATA_IN_GITHUB_CACHE == 'true'}}
+      data_cache_prefix: ${{needs.sync.outputs.DATA_CACHE_PREFIX}}
+    needs:
+      - sync
