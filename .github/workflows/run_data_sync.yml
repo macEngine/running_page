@@ -31,9 +31,10 @@ env:
   MIN_GRID_DISTANCE: 10 # change min distance here
   TITLE_GRID: Over 10km Runs # also here
 
-  # Privacy: trim 300m off the start AND end of every track so the start point
-  # (e.g. home address) is never published. This is the main privacy control.
-  IGNORE_START_END_RANGE: 300 # Unit meter
+  # Privacy: trim 30m off the start AND end of every track. Note 30m is a light
+  # trim only -- the real privacy control here is behavioural: start recording a
+  # few hundred metres away from home, so the raw data never contains it.
+  IGNORE_START_END_RANGE: 30 # Unit meter
   # Upstream author's coordinates removed. To mask specific places, generate a
   # polyline with https://developers.google.com/maps/documentation/utilities/polylineutility
   IGNORE_POLYLINE: ''
