@@ -322,5 +322,12 @@ jobs:
     with:
       save_data_in_github_cache: ${{needs.sync.outputs.SAVE_DATA_IN_GITHUB_CACHE == 'true'}}
       data_cache_prefix: ${{needs.sync.outputs.DATA_CACHE_PREFIX}}
+    # Secrets are NOT inherited by a called workflow. Without this the Pages
+    # build gets an empty VITE_MAPBOX_TOKEN and ships a bundle whose map cannot
+    # initialise -- which is why publishing worked when dispatched directly but
+    # broke when published through the sync. Passed explicitly rather than with
+    # `secrets: inherit`, so the Pages build never sees the Keep credentials.
+    secrets:
+      MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
     needs:
       - sync
