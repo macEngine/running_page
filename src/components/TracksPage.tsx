@@ -10,6 +10,12 @@ import {
   formatPace,
 } from '../hooks/useActivities';
 import { useLocale } from '../hooks/useLocale';
+import { useAnnotations } from '../core/hooks/useAnnotations';
+import {
+  collectTags,
+  matchesAnnotation,
+  parseQuery,
+} from '../core/annotations';
 
 type SportType = 'Run';
 const trackPlaceholders = Array.from({ length: 40 }, (_, id) => ({
@@ -118,6 +124,9 @@ export function TracksPage({
   const allYears = useMemo(() => getAvailableYears(activities), [activities]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [sportFilter, setSportFilter] = useState<SportType | null>(null);
+  const [query, setQuery] = useState('');
+  const [activeTags, setActiveTags] = useState<string[]>([]);
+  const annotations = useAnnotations();
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
     null
   );
@@ -157,10 +166,39 @@ export function TracksPage({
     [activities, selectedYear, sportFilter]
   );
 
+  // Tags present in the current year/sport selection, most used first.
+  const allTags = useMemo(
+    () =>
+      collectTags(
+        annotations,
+        base.map((a) => a.start_date_local)
+      ),
+    [annotations, base]
+  );
+
+  const searchTerms = useMemo(() => parseQuery(query), [query]);
+
+  // Tag / note search. With an empty query and no selected tags this returns
+  // `base` itself, so every downstream memo receives the very same reference it
+  // did before this feature existed and the page behaves identically.
+  const searched = useMemo(() => {
+    if (searchTerms.length === 0 && activeTags.length === 0) return base;
+    return base.filter((a) =>
+      matchesAnnotation(
+        annotations,
+        a.start_date_local,
+        searchTerms,
+        activeTags
+      )
+    );
+  }, [base, annotations, searchTerms, activeTags]);
+
   const withPolyline = useMemo(
     () =>
-      base.filter((a) => a.summary_polyline && a.summary_polyline.length > 20),
-    [base]
+      searched.filter(
+        (a) => a.summary_polyline && a.summary_polyline.length > 20
+      ),
+    [searched]
   );
 
   const { totalDist, totalTime, avgPace } = useMemo(() => {
@@ -168,7 +206,7 @@ export function TracksPage({
       totalTime = 0,
       speed = 0,
       runs = 0;
-    for (const activity of base) {
+    for (const activity of searched) {
       totalDist += activity.distance;
       totalTime += parseMovingTime(activity.moving_time);
       if (activity.type === 'Run' && activity.average_speed > 0) {
@@ -177,7 +215,7 @@ export function TracksPage({
       }
     }
     return { totalDist, totalTime, avgPace: runs ? speed / runs : 0 };
-  }, [base]);
+  }, [searched]);
 
   // Cluster tracks — defer heavy work
   type Cluster = { representative: Activity; count: number; color: string };
@@ -308,7 +346,7 @@ export function TracksPage({
                   {locale === 'zh' ? '活动' : 'Activities'}
                 </p>
                 <p className="font-mono text-2xl font-bold text-[var(--color-accent)]">
-                  {base.length}
+                  {searched.length}
                 </p>
               </div>
               <div>
@@ -644,6 +682,74 @@ export function TracksPage({
                 )}
               </p>
             )}
+            {/* Tag search. data-export-hidden keeps it out of the PNG export,
+                matching the existing export button. */}
+            <div data-export-hidden className="mb-3 flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setExportUrl('');
+                    setExportMessage('');
+                    setSelectedActivity(null);
+                    onSelectActivity?.(null);
+                  }}
+                  placeholder={
+                    locale === 'zh'
+                      ? '搜索标签或注释，空格分隔多个词'
+                      : 'Search tags or notes, space separates terms'
+                  }
+                  aria-label={
+                    locale === 'zh' ? '搜索标签或注释' : 'Search tags or notes'
+                  }
+                  className="min-w-0 flex-1 rounded-full border border-[var(--color-border)] bg-transparent px-3 py-1 text-xs text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:outline-none"
+                />
+                {(query !== '' || activeTags.length > 0) && (
+                  <button
+                    onClick={() => {
+                      setQuery('');
+                      setActiveTags([]);
+                      setExportUrl('');
+                      setExportMessage('');
+                      setSelectedActivity(null);
+                      onSelectActivity?.(null);
+                    }}
+                    className="rounded-full px-2 py-1 text-xs font-medium text-[var(--color-muted)] hover:text-[var(--color-text)]"
+                  >
+                    {locale === 'zh' ? '清除' : 'Clear'}
+                  </button>
+                )}
+              </div>
+              {allTags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {allTags.map((tag) => {
+                    const on = activeTags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        aria-pressed={on}
+                        onClick={() => {
+                          setActiveTags((prev) =>
+                            prev.includes(tag)
+                              ? prev.filter((t) => t !== tag)
+                              : [...prev, tag]
+                          );
+                          setExportUrl('');
+                          setExportMessage('');
+                          setSelectedActivity(null);
+                          onSelectActivity?.(null);
+                        }}
+                        className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${on ? 'border-transparent bg-[var(--color-accent)] text-[var(--color-on-accent)]' : 'border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)]'}`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             {clustering ? (
               <div className="flex flex-wrap gap-1">
                 {trackPlaceholders.map((placeholder) => (
@@ -668,6 +774,18 @@ export function TracksPage({
                       selected={selectedActivity?.run_id === a.run_id}
                       onClick={handleSelectTrack}
                     />
+                    {(annotations[a.start_date_local]?.tags?.length ?? 0) >
+                      0 && (
+                      <span
+                        className="absolute top-1 left-1 h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]"
+                        title={[
+                          annotations[a.start_date_local]?.tags?.join(' · '),
+                          annotations[a.start_date_local]?.note,
+                        ]
+                          .filter(Boolean)
+                          .join('\n')}
+                      />
+                    )}
                     {count > 1 && (
                       <span className="pointer-events-none absolute right-1 bottom-1 rounded bg-[var(--color-bg)]/80 px-1 py-0.5 text-[9px] leading-none font-bold text-[var(--color-muted)]">
                         ×{count}

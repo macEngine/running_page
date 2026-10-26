@@ -226,11 +226,7 @@ export const INDOOR_COLOR = '#8899aa';
 
 // map tiles vendor, maptiler or mapbox or stadiamaps
 // if you want to use maptiler, set the access token in MAP_TILE_ACCESS_TOKEN
-// 'mapcn' resolves to Carto (basemaps.cartocdn.com), which is unreachable from
-// mainland China -- the basemap renders blank with only the CARTO attribution.
-// 'mapcn_openfreemap' serves the same two style names from tiles.openfreemap.org
-// and needs no access token.
-export const MAP_TILE_VENDOR = 'mapcn_openfreemap';
+export const MAP_TILE_VENDOR = 'mapcn';
 
 // map tiles style name, see MAP_TILE_STYLES for more details
 export const MAP_TILE_STYLE_LIGHT = 'osm-bright';
