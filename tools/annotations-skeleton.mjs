@@ -11,10 +11,12 @@
  * - Rows whose activity no longer exists are kept and marked, so a failed sync
  *   can never silently drop your annotations.
  *
- * Output matches `prettier` (2-space indent, trailing newline) because CI runs
- * `pnpm run check` over src/**\/*.json.
+ * Output is run through prettier before writing, because CI runs
+ * `pnpm run check` over src/**\/*.json and prettier collapses short arrays onto
+ * one line -- plain JSON.stringify(_, null, 2) does not and fails the check.
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { format } from 'prettier';
 
 const ACTIVITIES = 'src/static/activities.json';
 const ANNOTATIONS = 'src/static/annotations.json';
@@ -71,7 +73,10 @@ for (const [key, previous] of Object.entries(existing)) {
 }
 
 const output = { version: 1, byStartDateLocal };
-writeFileSync(ANNOTATIONS, `${JSON.stringify(output, null, 2)}\n`);
+writeFileSync(
+  ANNOTATIONS,
+  await format(JSON.stringify(output), { parser: 'json' })
+);
 
 const annotated = Object.values(byStartDateLocal).filter(
   (entry) => entry.tags.length > 0 || entry.note.trim() !== ''
