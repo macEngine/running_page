@@ -5,7 +5,6 @@ import * as polyline from '@mapbox/polyline';
 import type { Activity } from '../types';
 import {
   getAvailableYears,
-  formatDistance,
   parseMovingTime,
   formatPace,
 } from '../hooks/useActivities';
@@ -201,21 +200,19 @@ export function TracksPage({
     [searched]
   );
 
-  const { totalDist, totalTime, avgPace } = useMemo(() => {
-    let totalDist = 0,
-      totalTime = 0,
-      speed = 0,
-      runs = 0;
-    for (const activity of searched) {
-      totalDist += activity.distance;
-      totalTime += parseMovingTime(activity.moving_time);
-      if (activity.type === 'Run' && activity.average_speed > 0) {
-        speed += activity.average_speed;
-        runs++;
-      }
-    }
-    return { totalDist, totalTime, avgPace: runs ? speed / runs : 0 };
-  }, [searched]);
+  // The card on the left describes one track: the one clicked, or the only one
+  // left after filtering (e.g. a tag that matches a single hike).
+  const focusedActivity =
+    selectedActivity ?? (withPolyline.length === 1 ? withPolyline[0] : null);
+  const focusedDate = focusedActivity
+    ? new Date(focusedActivity.start_date_local).toLocaleDateString(
+        locale === 'zh' ? 'zh-CN' : 'en-US',
+        { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }
+      )
+    : '';
+  const focusedLink = focusedActivity
+    ? (annotations[focusedActivity.start_date_local]?.link ?? '')
+    : '';
 
   // Cluster tracks — defer heavy work
   type Cluster = { representative: Activity; count: number; color: string };
@@ -335,51 +332,30 @@ export function TracksPage({
           ref={previewRef}
           className="flex scroll-mt-28 flex-col gap-4 lg:sticky lg:top-24"
         >
-          {/* Stats card */}
+          {/* Focus card: one line date, one line link (blank when absent) */}
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-            <p className="mb-3 text-[10px] tracking-wider text-[var(--color-muted)] uppercase">
-              {selectedYear ?? (locale === 'zh' ? '全部' : 'Total')}
+            <p className="text-[10px] tracking-wider text-[var(--color-muted)] uppercase">
+              {locale === 'zh' ? '日期' : 'Date'}
             </p>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
-              <div>
-                <p className="text-[10px] tracking-wider text-[var(--color-muted)] uppercase">
-                  {locale === 'zh' ? '活动' : 'Activities'}
-                </p>
-                <p className="font-mono text-2xl font-bold text-[var(--color-accent)]">
-                  {searched.length}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] tracking-wider text-[var(--color-muted)] uppercase">
-                  {locale === 'zh' ? '距离' : 'Distance'}
-                </p>
-                <p className="font-mono text-2xl font-bold">
-                  {formatDistance(totalDist)}{' '}
-                  <span className="text-sm font-normal text-[var(--color-muted)]">
-                    km
-                  </span>
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] tracking-wider text-[var(--color-muted)] uppercase">
-                  {locale === 'zh' ? '时间' : 'Time'}
-                </p>
-                <p className="font-mono text-lg font-bold">
-                  {Math.floor(totalTime / 3600)}h{' '}
-                  {Math.floor((totalTime % 3600) / 60)}m
-                </p>
-              </div>
-              {avgPace > 0 && (
-                <div>
-                  <p className="text-[10px] tracking-wider text-[var(--color-muted)] uppercase">
-                    {locale === 'zh' ? '均配速' : 'Avg Pace'}
-                  </p>
-                  <p className="font-mono text-lg font-bold">
-                    {formatPace(avgPace)}
-                  </p>
-                </div>
-              )}
-            </div>
+            <p className="min-h-[1.75rem] font-mono text-lg font-bold">
+              {focusedDate || '\u00a0'}
+            </p>
+            <p className="mt-3 text-[10px] tracking-wider text-[var(--color-muted)] uppercase">
+              {locale === 'zh' ? '链接' : 'Link'}
+            </p>
+            {focusedLink ? (
+              <a
+                href={focusedLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block min-h-[1.25rem] truncate text-sm text-[var(--color-accent)] underline underline-offset-2"
+                title={focusedLink}
+              >
+                {focusedLink}
+              </a>
+            ) : (
+              <p className="min-h-[1.25rem] text-sm">{'\u00a0'}</p>
+            )}
           </div>
 
           {/* Activity detail — only when a single track is selected */}

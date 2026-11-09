@@ -25,6 +25,12 @@ export interface Annotation {
   tags?: string[];
   /** Free-form note for this activity. Searchable. */
   note?: string;
+  /**
+   * External page for this activity (trip notes, photo album...). Shown on the
+   * tracks page, not searchable. Only http(s) URLs are kept, so a typo cannot
+   * inject a javascript: link.
+   */
+  link?: string;
   /** Human orientation only when hand-editing the file; ignored by the app. */
   _label?: string;
 }
@@ -59,10 +65,24 @@ function sanitize(raw: unknown): AnnotationMap {
         )
       : [];
     const note = typeof entry.note === 'string' ? entry.note : '';
-    if (tags.length === 0 && note.trim() === '') continue;
-    out[key] = { tags, note };
+    const link = sanitizeLink(entry.link);
+    if (tags.length === 0 && note.trim() === '' && link === '') continue;
+    out[key] = link === '' ? { tags, note } : { tags, note, link };
   }
   return out;
+}
+
+/** Accept only absolute http(s) URLs; anything else becomes "no link". */
+export function sanitizeLink(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (trimmed === '') return '';
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? trimmed : '';
+  } catch {
+    return '';
+  }
 }
 
 let cache: AnnotationMap | null = null;

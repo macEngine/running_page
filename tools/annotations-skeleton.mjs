@@ -6,7 +6,7 @@
  *
  * - Adds a row for every activity in src/static/activities.json, keyed by
  *   start_date_local (see src/core/annotations.ts for why not run_id).
- * - Preserves any tags/note already written; never deletes your edits.
+ * - Preserves any tags/note/link already written; never deletes your edits.
  * - Rewrites `_label`, which exists purely so the file is readable by hand.
  * - Rows whose activity no longer exists are kept and marked, so a failed sync
  *   can never silently drop your annotations.
@@ -26,9 +26,12 @@ const activities = JSON.parse(readFileSync(ACTIVITIES, 'utf8'));
 let existing = {};
 if (existsSync(ANNOTATIONS)) {
   try {
-    existing = JSON.parse(readFileSync(ANNOTATIONS, 'utf8')).byStartDateLocal ?? {};
+    existing =
+      JSON.parse(readFileSync(ANNOTATIONS, 'utf8')).byStartDateLocal ?? {};
   } catch (error) {
-    console.error(`${ANNOTATIONS} is not valid JSON, refusing to overwrite it.`);
+    console.error(
+      `${ANNOTATIONS} is not valid JSON, refusing to overwrite it.`
+    );
     console.error(error.message);
     process.exit(1);
   }
@@ -56,14 +59,19 @@ for (const activity of [...activities].sort((a, b) =>
     _label: label(activity),
     tags: previous.tags ?? [],
     note: previous.note ?? '',
+    link: previous.link ?? '',
   };
 }
+
+const hasAnyContent = (entry) =>
+  (entry.tags?.length ?? 0) > 0 ||
+  (entry.note ?? '').trim() !== '' ||
+  (entry.link ?? '').trim() !== '';
 
 let orphans = 0;
 for (const [key, previous] of Object.entries(existing)) {
   if (seen.has(key)) continue;
-  const hasContent =
-    (previous.tags?.length ?? 0) > 0 || (previous.note ?? '').trim() !== '';
+  const hasContent = hasAnyContent(previous);
   if (!hasContent) continue;
   orphans++;
   byStartDateLocal[key] = {
@@ -78,9 +86,7 @@ writeFileSync(
   await format(JSON.stringify(output), { parser: 'json' })
 );
 
-const annotated = Object.values(byStartDateLocal).filter(
-  (entry) => entry.tags.length > 0 || entry.note.trim() !== ''
-).length;
+const annotated = Object.values(byStartDateLocal).filter(hasAnyContent).length;
 console.log(
   `${ANNOTATIONS}: ${Object.keys(byStartDateLocal).length} rows, ` +
     `${annotated} annotated${orphans ? `, ${orphans} orphaned (kept)` : ''}`
