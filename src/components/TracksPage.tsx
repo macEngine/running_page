@@ -14,6 +14,7 @@ import {
   collectTags,
   matchesAnnotation,
   parseQuery,
+  type Annotation,
 } from '../core/annotations';
 
 type SportType = 'Run';
@@ -84,7 +85,6 @@ const TrackThumb = memo(function TrackThumb({
       aria-label={`${activity.start_date_local.slice(0, 16)} · ${activity.name} · ${(activity.distance / 1000).toFixed(1)} km`}
       className={`track-thumb group relative cursor-pointer rounded transition-all ${selected ? 'ring-2 ring-[var(--color-accent)] ring-offset-1 ring-offset-[var(--color-bg)]' : ''}`}
       onClick={() => onClick(activity)}
-      title={`${activity.name} — ${(activity.distance / 1000).toFixed(1)} km`}
     >
       <svg
         width={size}
@@ -102,6 +102,80 @@ const TrackThumb = memo(function TrackThumb({
         />
       </svg>
     </button>
+  );
+});
+
+/** "0:22:11" -> "22m 11s"; "2:23:38" -> "2h 23m". */
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
+
+/**
+ * Hover card for one thumbnail: start (with weekday), end, duration, tags.
+ * Pure CSS show/hide via the parent's `group` class so it costs nothing until
+ * hovered; `data-export-hidden` keeps it out of the PNG export.
+ */
+const TrackHoverCard = memo(function TrackHoverCard({
+  activity,
+  annotation,
+  locale,
+}: {
+  activity: Activity;
+  annotation: Annotation | undefined;
+  locale: 'zh' | 'en';
+}) {
+  const lang = locale === 'zh' ? 'zh-CN' : 'en-US';
+  const start = new Date(activity.start_date_local);
+  const seconds = parseMovingTime(activity.moving_time);
+  const end = new Date(start.getTime() + seconds * 1000);
+  const sameDay = start.toDateString() === end.toDateString();
+  const time: Intl.DateTimeFormatOptions = {
+    hour: '2-digit',
+    minute: '2-digit',
+  };
+  const date: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    weekday: 'short',
+  };
+  const tags = annotation?.tags ?? [];
+  const rows: [string, string][] = [
+    [
+      locale === 'zh' ? '开始' : 'Start',
+      `${start.toLocaleDateString(lang, date)} ${start.toLocaleTimeString(lang, time)}`,
+    ],
+    [
+      locale === 'zh' ? '结束' : 'End',
+      sameDay
+        ? end.toLocaleTimeString(lang, time)
+        : `${end.toLocaleDateString(lang, date)} ${end.toLocaleTimeString(lang, time)}`,
+    ],
+    [locale === 'zh' ? '时长' : 'Duration', formatDuration(seconds)],
+    [locale === 'zh' ? '标签' : 'Tags', tags.length ? tags.join(' · ') : '—'],
+  ];
+  if (annotation?.note) {
+    rows.push([locale === 'zh' ? '注释' : 'Note', annotation.note]);
+  }
+  return (
+    <div
+      role="tooltip"
+      data-export-hidden
+      className="pointer-events-none absolute top-full left-0 z-20 mt-1 hidden w-max max-w-[260px] rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-xs shadow-lg group-focus-within:block group-hover:block"
+    >
+      {rows.map(([label, value]) => (
+        <div key={label} className="flex gap-2 leading-5">
+          <span className="w-8 shrink-0 text-[var(--color-muted)]">
+            {label}
+          </span>
+          <span className="break-words">{value}</span>
+        </div>
+      ))}
+    </div>
   );
 });
 
@@ -743,24 +817,25 @@ export function TracksPage({
             ) : (
               <div className="flex flex-wrap gap-1">
                 {sortedTracks.map(({ representative: a, count, color }) => (
-                  <div key={a.run_id} className="track-cell relative">
-                    <TrackThumb
+                  <div key={a.run_id} className="track-cell group relative">
+                    {/* content-visibility:auto lives on this inner box (see index.css);
+                        it also clips overflow, so the hover card sits outside it. */}
+                    <div className="track-cell-paint">
+                      <TrackThumb
+                        activity={a}
+                        color={color}
+                        selected={selectedActivity?.run_id === a.run_id}
+                        onClick={handleSelectTrack}
+                      />
+                    </div>
+                    <TrackHoverCard
                       activity={a}
-                      color={color}
-                      selected={selectedActivity?.run_id === a.run_id}
-                      onClick={handleSelectTrack}
+                      annotation={annotations[a.start_date_local]}
+                      locale={locale}
                     />
                     {(annotations[a.start_date_local]?.tags?.length ?? 0) >
                       0 && (
-                      <span
-                        className="absolute top-1 left-1 h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]"
-                        title={[
-                          annotations[a.start_date_local]?.tags?.join(' · '),
-                          annotations[a.start_date_local]?.note,
-                        ]
-                          .filter(Boolean)
-                          .join('\n')}
-                      />
+                      <span className="pointer-events-none absolute top-1 left-1 h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
                     )}
                     {count > 1 && (
                       <span className="pointer-events-none absolute right-1 bottom-1 rounded bg-[var(--color-bg)]/80 px-1 py-0.5 text-[9px] leading-none font-bold text-[var(--color-muted)]">

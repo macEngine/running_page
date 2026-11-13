@@ -110,11 +110,13 @@ body {
   min-width: 32px;
 }
 
-/* Skip offscreen SVG paint/layout, but include every route in image exports. */
-.dashboard .track-cell {
+/* Skip offscreen SVG paint/layout, but include every route in image exports.
+   Applied to the inner box, not .track-cell, because content-visibility also
+   clips overflow and would hide the hover card that hangs below the thumb. */
+.dashboard .track-cell-paint {
   content-visibility: auto;
   contain-intrinsic-size: 80px 80px;
 }
-.dashboard .exporting .track-cell {
+.dashboard .exporting .track-cell-paint {
   content-visibility: visible;
 }
