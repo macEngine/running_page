@@ -16,6 +16,7 @@ import {
   parseQuery,
   type Annotation,
 } from '../core/annotations';
+import { buildHoverRows } from '../core/hoverCard';
 
 type SportType = 'Run';
 const trackPlaceholders = Array.from({ length: 40 }, (_, id) => ({
@@ -105,15 +106,6 @@ const TrackThumb = memo(function TrackThumb({
   );
 });
 
-/** "0:22:11" -> "22m 11s"; "2:23:38" -> "2h 23m". */
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  return s > 0 ? `${m}m ${s}s` : `${m}m`;
-}
-
 /**
  * Hover card for one thumbnail: start (with weekday), end, duration, tags.
  * Pure CSS show/hide via the parent's `group` class so it costs nothing until
@@ -128,39 +120,7 @@ const TrackHoverCard = memo(function TrackHoverCard({
   annotation: Annotation | undefined;
   locale: 'zh' | 'en';
 }) {
-  const lang = locale === 'zh' ? 'zh-CN' : 'en-US';
-  const start = new Date(activity.start_date_local);
-  const seconds = parseMovingTime(activity.moving_time);
-  const end = new Date(start.getTime() + seconds * 1000);
-  const sameDay = start.toDateString() === end.toDateString();
-  const time: Intl.DateTimeFormatOptions = {
-    hour: '2-digit',
-    minute: '2-digit',
-  };
-  const date: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    weekday: 'short',
-  };
-  const tags = annotation?.tags ?? [];
-  const rows: [string, string][] = [
-    [
-      locale === 'zh' ? '开始' : 'Start',
-      `${start.toLocaleDateString(lang, date)} ${start.toLocaleTimeString(lang, time)}`,
-    ],
-    [
-      locale === 'zh' ? '结束' : 'End',
-      sameDay
-        ? end.toLocaleTimeString(lang, time)
-        : `${end.toLocaleDateString(lang, date)} ${end.toLocaleTimeString(lang, time)}`,
-    ],
-    [locale === 'zh' ? '时长' : 'Duration', formatDuration(seconds)],
-    [locale === 'zh' ? '标签' : 'Tags', tags.length ? tags.join(' · ') : '—'],
-  ];
-  if (annotation?.note) {
-    rows.push([locale === 'zh' ? '注释' : 'Note', annotation.note]);
-  }
+  const rows = buildHoverRows(activity, annotation, locale);
   return (
     <div
       role="tooltip"
@@ -545,6 +505,7 @@ export function TracksPage({
           <RouteMap
             activities={withPolyline}
             allActivities={activities}
+            annotations={annotations}
             selectedActivity={selectedActivity}
             dark={dark}
             onClearSelection={() => {

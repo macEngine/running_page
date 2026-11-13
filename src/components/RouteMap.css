@@ -86,3 +86,31 @@
   background: color-mix(in srgb, var(--color-card) 75%, transparent);
   font-size: 13px;
 }
+
+/* Hover popup over a route — same look as the thumbnail hover card. */
+.route-hover-popup {
+  pointer-events: none;
+  z-index: 20;
+}
+.route-hover-popup .mapboxgl-popup-content {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-card);
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 20px;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3);
+}
+.route-hover-popup .mapboxgl-popup-tip {
+  border-top-color: var(--color-card);
+  border-bottom-color: var(--color-card);
+}
+.route-hover-popup .hover-card-row {
+  display: flex;
+  gap: 8px;
+}
+.route-hover-popup .hover-card-label {
+  flex: 0 0 2rem;
+  color: var(--color-muted);
+}

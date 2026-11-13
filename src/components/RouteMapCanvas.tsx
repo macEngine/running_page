@@ -4,6 +4,8 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import * as polyline from '@mapbox/polyline';
 import type { Activity } from '../types';
 import { hasRoute, routeForActivity } from '../core/routeFallback';
+import type { AnnotationMap } from '../core/annotations';
+import { buildHoverRows, hoverRowsToHtml } from '../core/hoverCard';
 import { MAPBOX_TOKEN } from '../config';
 import { useLocale } from '../hooks/useLocale';
 import './RouteMap.css';
@@ -11,6 +13,8 @@ import './RouteMap.css';
 export interface RouteMapProps {
   activities: Activity[];
   allActivities?: Activity[];
+  /** Tags/notes shown in the hover popup; optional so the map works without them. */
+  annotations?: AnnotationMap;
   selectedActivity?: Activity | null;
   dark?: boolean;
   onClearSelection?: () => void;
@@ -20,7 +24,8 @@ const routeCache = new WeakMap<
   Activity,
   {
     type: 'Feature';
-    properties: { type: string };
+    /** `key` is Activity.start_date_local, used to find the activity on hover. */
+    properties: { type: string; key: string };
     geometry: { type: 'LineString'; coordinates: number[][] };
   }[]
 >();
@@ -28,6 +33,7 @@ const routeCache = new WeakMap<
 export function RouteMapCanvas({
   activities,
   allActivities = activities,
+  annotations,
   selectedActivity,
   dark,
   onClearSelection,
@@ -37,6 +43,20 @@ export function RouteMapCanvas({
   const panelRef = useRef<HTMLElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const popupRef = useRef<mapboxgl.Popup | null>(null);
+  // Read by the map's mouse handlers, which are bound once per map instance.
+  const hoverDataRef = useRef({
+    byKey: new Map<string, Activity>(),
+    annotations,
+    locale,
+  });
+  useEffect(() => {
+    hoverDataRef.current = {
+      byKey: new Map(allActivities.map((a) => [a.start_date_local, a])),
+      annotations,
+      locale,
+    };
+  }, [allActivities, annotations, locale]);
   const styleReadyRef = useRef(false);
   const cameraRef = useRef<mapboxgl.CameraOptions | null>(null);
   const fittedRef = useRef<unknown>(null);
@@ -89,7 +109,7 @@ export function RouteMapCanvas({
         const features = [
           {
             type: 'Feature' as const,
-            properties: { type: activity.type },
+            properties: { type: activity.type, key: activity.start_date_local },
             geometry: { type: 'LineString' as const, coordinates },
           },
         ];
@@ -131,6 +151,14 @@ export function RouteMapCanvas({
     if (source) source.setData(data);
     else {
       map.addSource('routes', { type: 'geojson', data });
+      // Invisible, wide copy of the routes so a 2px line is easy to hover.
+      map.addLayer({
+        id: 'routes-hit',
+        type: 'line',
+        source: 'routes',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-width': 14, 'line-opacity': 0 },
+      });
       map.addLayer({
         id: 'routes',
         type: 'line',
@@ -191,6 +219,52 @@ export function RouteMapCanvas({
     );
     const observer = new ResizeObserver(() => map.resize());
     observer.observe(containerRef.current);
+
+    // Hover popup over a route. Map-level listeners (not layer-scoped) so that
+    // nothing is queried while the style is reloading and the layer is absent;
+    // a layer-scoped listener would fire an 'error' event in that window.
+    const popup = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      offset: 14,
+      maxWidth: '280px',
+      className: 'route-hover-popup',
+    });
+    popupRef.current = popup;
+    let hoveredKey: string | null = null;
+    const hidePopup = () => {
+      hoveredKey = null;
+      popup.remove();
+      map.getCanvas().style.cursor = '';
+    };
+    const onMove = (event: mapboxgl.MapMouseEvent) => {
+      if (!map.getLayer('routes-hit')) return hidePopup();
+      const [feature] = map.queryRenderedFeatures(event.point, {
+        layers: ['routes-hit'],
+      });
+      const key = feature?.properties?.key as string | undefined;
+      const { byKey, annotations, locale } = hoverDataRef.current;
+      const activity = key ? byKey.get(key) : undefined;
+      if (!activity) return hidePopup();
+      map.getCanvas().style.cursor = 'pointer';
+      if (key !== hoveredKey) {
+        hoveredKey = key ?? null;
+        popup.setHTML(
+          `<div class="hover-card">${hoverRowsToHtml(
+            buildHoverRows(
+              activity,
+              annotations?.[activity.start_date_local],
+              locale
+            )
+          )}</div>`
+        );
+      }
+      popup.setLngLat(event.lngLat);
+      if (!popup.isOpen()) popup.addTo(map);
+    };
+    map.on('mousemove', onMove);
+    map.on('mouseout', hidePopup);
+
     return () => {
       cameraRef.current = {
         center: map.getCenter(),
@@ -199,6 +273,8 @@ export function RouteMapCanvas({
         pitch: map.getPitch(),
       };
       observer.disconnect();
+      popup.remove();
+      popupRef.current = null;
       map.remove();
       mapRef.current = null;
     };
