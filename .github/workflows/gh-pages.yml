@@ -2,6 +2,21 @@ name: Publish GitHub Pages
 
 # Controls when the action will run.
 on:
+  # Publish whenever site source changes on master, so an edit to src/ (tags,
+  # notes, UI) goes live without a manual dispatch. Data syncs are not matched
+  # here: the sync job pushes with GITHUB_TOKEN (which never triggers workflows)
+  # and publishes through its own workflow_call below, so there is no double run.
+  # On a push event `inputs.*` are empty, which skips the optional cache step.
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'vite.config.*'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/gh-pages.yml'
   workflow_dispatch:
     inputs:
       save_data_in_github_cache:
