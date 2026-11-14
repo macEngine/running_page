@@ -115,32 +115,56 @@ const TrackThumb = memo(function TrackThumb({
 });
 
 /**
- * Hover card for one thumbnail: start (with weekday), end, duration, tags.
- * Pure CSS show/hide via the parent's `group` class so it costs nothing until
- * hovered; `data-export-hidden` keeps it out of the PNG export.
+ * Hover card for one thumbnail: start (with weekday), end, duration, tags,
+ * description. Pure CSS show/hide via the parent's `group` class.
+ *
+ * It is interactive (tags click to filter, text can be selected), so the mouse
+ * must be able to travel from the thumb onto the card: the outer wrapper uses
+ * padding, not margin, so there is no dead gap, and visibility toggles with a
+ * short delay so a pointer merely passing through does not trap on it.
+ * `data-export-hidden` keeps it out of the PNG export.
  */
 const TrackHoverCard = memo(function TrackHoverCard({
   activity,
   annotation,
   locale,
+  onTagClick,
 }: {
   activity: Activity;
   annotation: Annotation | undefined;
   locale: 'zh' | 'en';
+  onTagClick: (tag: string) => void;
 }) {
   const rows = buildHoverRows(activity, annotation, locale);
   return (
     <div
       role="tooltip"
       data-export-hidden
-      className="pointer-events-none absolute top-full left-0 z-20 mt-1 hidden w-max max-w-[340px] grid-cols-[max-content_1fr] gap-x-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-xs leading-5 shadow-lg group-focus-within:grid group-hover:grid"
+      className="invisible absolute top-full left-0 z-20 pt-1 transition-[visibility] delay-150 group-focus-within:visible group-hover:visible"
     >
-      {rows.map(([label, value]) => (
-        <Fragment key={label}>
-          <span className="text-[var(--color-muted)]">{label}</span>
-          <span className="min-w-0 break-words">{value}</span>
-        </Fragment>
-      ))}
+      <div className="grid w-max max-w-[340px] cursor-auto grid-cols-[max-content_1fr] gap-x-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-xs leading-5 shadow-lg select-text">
+        {rows.map(({ label, value, tags }) => (
+          <Fragment key={label}>
+            <span className="text-[var(--color-muted)]">{label}</span>
+            {tags && tags.length > 0 ? (
+              <span className="flex min-w-0 flex-wrap gap-x-1.5">
+                {tags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => onTagClick(tag)}
+                    className="cursor-pointer text-[var(--color-accent)] underline-offset-2 hover:underline"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </span>
+            ) : (
+              <span className="min-w-0 break-words">{value}</span>
+            )}
+          </Fragment>
+        ))}
+      </div>
     </div>
   );
 });
@@ -327,6 +351,20 @@ export function TracksPage({
       }
     },
     [selectedActivity, onSelectActivity]
+  );
+
+  // Shared by the tag pills and the tags inside a thumbnail's hover card.
+  const toggleTag = useCallback(
+    (tag: string) => {
+      setActiveTags((prev) =>
+        prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+      );
+      setExportUrl('');
+      setExportMessage('');
+      setSelectedActivity(null);
+      onSelectActivity?.(null);
+    },
+    [onSelectActivity]
   );
 
   const selectedSeconds = selectedActivity
@@ -747,17 +785,7 @@ export function TracksPage({
                       <button
                         key={tag}
                         aria-pressed={on}
-                        onClick={() => {
-                          setActiveTags((prev) =>
-                            prev.includes(tag)
-                              ? prev.filter((t) => t !== tag)
-                              : [...prev, tag]
-                          );
-                          setExportUrl('');
-                          setExportMessage('');
-                          setSelectedActivity(null);
-                          onSelectActivity?.(null);
-                        }}
+                        onClick={() => toggleTag(tag)}
                         className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${on ? 'border-transparent bg-[var(--color-accent)] text-[var(--color-on-accent)]' : 'border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)]'}`}
                       >
                         {tag}
@@ -799,6 +827,7 @@ export function TracksPage({
                       activity={a}
                       annotation={annotations[a.start_date_local]}
                       locale={locale}
+                      onTagClick={toggleTag}
                     />
                     {(annotations[a.start_date_local]?.tags?.length ?? 0) >
                       0 && (

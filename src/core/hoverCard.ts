@@ -16,7 +16,13 @@ export function formatDuration(seconds: number): string {
   return s > 0 ? `${m}m ${s}s` : `${m}m`;
 }
 
-export type HoverRow = [label: string, value: string];
+export interface HoverRow {
+  label: string;
+  /** Plain-text value; for the tags row it is the joined tag list. */
+  value: string;
+  /** Present on the tags row so a renderer can make each tag clickable. */
+  tags?: string[];
+}
 
 export function buildHoverRows(
   activity: Activity,
@@ -41,21 +47,31 @@ export function buildHoverRows(
   };
   const tags = annotation?.tags ?? [];
   const rows: HoverRow[] = [
-    [
-      locale === 'zh' ? '开始' : 'Start',
-      `${start.toLocaleDateString(lang, date)} ${start.toLocaleTimeString(lang, time)}`,
-    ],
-    [
-      locale === 'zh' ? '结束' : 'End',
-      sameDay
+    {
+      label: locale === 'zh' ? '开始' : 'Start',
+      value: `${start.toLocaleDateString(lang, date)} ${start.toLocaleTimeString(lang, time)}`,
+    },
+    {
+      label: locale === 'zh' ? '结束' : 'End',
+      value: sameDay
         ? end.toLocaleTimeString(lang, time)
         : `${end.toLocaleDateString(lang, date)} ${end.toLocaleTimeString(lang, time)}`,
-    ],
-    [locale === 'zh' ? '时长' : 'Duration', formatDuration(seconds)],
-    [locale === 'zh' ? '标签' : 'Tags', tags.length ? tags.join(' · ') : '—'],
+    },
+    {
+      label: locale === 'zh' ? '时长' : 'Duration',
+      value: formatDuration(seconds),
+    },
+    {
+      label: locale === 'zh' ? '标签' : 'Tags',
+      value: tags.length ? tags.join(' · ') : '—',
+      tags,
+    },
   ];
   if (annotation?.note) {
-    rows.push([locale === 'zh' ? '描述' : 'Description', annotation.note]);
+    rows.push({
+      label: locale === 'zh' ? '描述' : 'Description',
+      value: annotation.note,
+    });
   }
   return rows;
 }
@@ -73,7 +89,7 @@ function escapeHtml(text: string): string {
 export function hoverRowsToHtml(rows: HoverRow[]): string {
   return rows
     .map(
-      ([label, value]) =>
+      ({ label, value }) =>
         `<span class="hover-card-label">${escapeHtml(label)}</span><span class="hover-card-value">${escapeHtml(value)}</span>`
     )
     .join('');
