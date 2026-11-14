@@ -55,7 +55,7 @@ export function buildHoverRows(
     [locale === 'zh' ? '标签' : 'Tags', tags.length ? tags.join(' · ') : '—'],
   ];
   if (annotation?.note) {
-    rows.push([locale === 'zh' ? '注释' : 'Note', annotation.note]);
+    rows.push([locale === 'zh' ? '描述' : 'Description', annotation.note]);
   }
   return rows;
 }

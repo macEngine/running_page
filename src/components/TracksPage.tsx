@@ -709,11 +709,11 @@ export function TracksPage({
                   }}
                   placeholder={
                     locale === 'zh'
-                      ? '搜索标签或注释，空格分隔多个词'
+                      ? '搜索标签或描述，空格分隔多个词'
                       : 'Search tags or notes, space separates terms'
                   }
                   aria-label={
-                    locale === 'zh' ? '搜索标签或注释' : 'Search tags or notes'
+                    locale === 'zh' ? '搜索标签或描述' : 'Search tags or notes'
                   }
                   className="min-w-0 flex-1 rounded-full border border-[var(--color-border)] bg-transparent px-3 py-1 text-xs text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:outline-none"
                 />
