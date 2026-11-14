@@ -106,11 +106,15 @@
   border-top-color: var(--color-card);
   border-bottom-color: var(--color-card);
 }
-.route-hover-popup .hover-card-row {
-  display: flex;
-  gap: 8px;
+.route-hover-popup .hover-card {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 12px;
 }
 .route-hover-popup .hover-card-label {
-  flex: 0 0 2rem;
   color: var(--color-muted);
+}
+.route-hover-popup .hover-card-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }

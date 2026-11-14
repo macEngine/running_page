@@ -68,12 +68,13 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/** Same rows as HTML, for mapbox-gl's Popup which takes a markup string. */
+/** Same rows as HTML, for mapbox-gl's Popup which takes a markup string.
+ *  Flat label/value cells; the container is a 2-column grid (see RouteMap.css). */
 export function hoverRowsToHtml(rows: HoverRow[]): string {
   return rows
     .map(
       ([label, value]) =>
-        `<div class="hover-card-row"><span class="hover-card-label">${escapeHtml(label)}</span><span>${escapeHtml(value)}</span></div>`
+        `<span class="hover-card-label">${escapeHtml(label)}</span><span class="hover-card-value">${escapeHtml(value)}</span>`
     )
     .join('');
 }

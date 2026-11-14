@@ -1,4 +1,12 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { exportCard } from '../utils/exportCard';
 import { RouteMap } from './RouteMap';
 import * as polyline from '@mapbox/polyline';
@@ -125,15 +133,13 @@ const TrackHoverCard = memo(function TrackHoverCard({
     <div
       role="tooltip"
       data-export-hidden
-      className="pointer-events-none absolute top-full left-0 z-20 mt-1 hidden w-max max-w-[260px] rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-xs shadow-lg group-focus-within:block group-hover:block"
+      className="pointer-events-none absolute top-full left-0 z-20 mt-1 hidden w-max max-w-[340px] grid-cols-[max-content_1fr] gap-x-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-xs leading-5 shadow-lg group-focus-within:grid group-hover:grid"
     >
       {rows.map(([label, value]) => (
-        <div key={label} className="flex gap-2 leading-5">
-          <span className="w-8 shrink-0 text-[var(--color-muted)]">
-            {label}
-          </span>
-          <span className="break-words">{value}</span>
-        </div>
+        <Fragment key={label}>
+          <span className="text-[var(--color-muted)]">{label}</span>
+          <span className="min-w-0 break-words">{value}</span>
+        </Fragment>
       ))}
     </div>
   );

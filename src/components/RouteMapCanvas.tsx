@@ -227,7 +227,7 @@ export function RouteMapCanvas({
       closeButton: false,
       closeOnClick: false,
       offset: 14,
-      maxWidth: '280px',
+      maxWidth: '360px',
       className: 'route-hover-popup',
     });
     popupRef.current = popup;
