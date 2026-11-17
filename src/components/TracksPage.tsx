@@ -24,7 +24,7 @@ import {
   parseQuery,
   type Annotation,
 } from '../core/annotations';
-import { buildHoverRows } from '../core/hoverCard';
+import { buildHoverCard } from '../core/hoverCard';
 
 type SportType = 'Run';
 const trackPlaceholders = Array.from({ length: 40 }, (_, id) => ({
@@ -135,32 +135,45 @@ const TrackHoverCard = memo(function TrackHoverCard({
   locale: 'zh' | 'en';
   onTagClick: (tag: string) => void;
 }) {
-  const rows = buildHoverRows(activity, annotation, locale);
+  const card = buildHoverCard(activity, annotation, locale);
   return (
     <div
       role="tooltip"
       data-export-hidden
       className="invisible absolute top-full left-0 z-20 pt-1 transition-[visibility] delay-150 group-focus-within:visible group-hover:visible"
     >
-      <div className="grid w-max max-w-[340px] cursor-auto grid-cols-[max-content_1fr] gap-x-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-xs leading-5 shadow-lg select-text">
-        {rows.map(({ label, value, tags }) => (
+      <div className="w-[300px] cursor-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3 text-[13px] leading-relaxed shadow-xl select-text">
+        <p className="text-[15px] font-bold">{card.title}</p>
+        {card.sections.map(({ label, value, tags, href, mono }) => (
           <Fragment key={label}>
-            <span className="text-[var(--color-muted)]">{label}</span>
-            {tags && tags.length > 0 ? (
-              <span className="flex min-w-0 flex-wrap gap-x-1.5">
+            <p className="mt-2 text-[10px] tracking-wider text-[var(--color-muted)] uppercase">
+              {label}
+            </p>
+            {tags ? (
+              <p className="flex flex-wrap gap-1 pt-0.5">
                 {tags.map((tag) => (
                   <button
                     key={tag}
                     type="button"
                     onClick={() => onTagClick(tag)}
-                    className="cursor-pointer text-[var(--color-accent)] underline-offset-2 hover:underline"
+                    className="cursor-pointer rounded-full border border-[var(--color-border)] px-2 text-xs text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
                   >
                     {tag}
                   </button>
                 ))}
-              </span>
+              </p>
+            ) : href ? (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={href}
+                className="block truncate text-[var(--color-accent)] underline underline-offset-2"
+              >
+                {href}
+              </a>
             ) : (
-              <span className="min-w-0 break-words">{value}</span>
+              <p className={`break-words${mono ? 'font-mono' : ''}`}>{value}</p>
             )}
           </Fragment>
         ))}

@@ -17,6 +17,7 @@ import {
 } from '@/hooks/useActivities';
 import { useTheme } from '@/hooks/useTheme';
 import { useLocale } from '@/hooks/useLocale';
+import { useAnnotations } from '@/core/hooks/useAnnotations';
 import { Header } from '@/components/Header';
 import { StatsCards } from '@/components/StatsCards';
 import { ContributionHeatmap } from '@/components/ContributionHeatmap';
@@ -55,6 +56,7 @@ function Dashboard() {
   const activities = getActivityData() as Activity[];
   const { dark, toggle } = useTheme();
   const { t } = useLocale();
+  const annotations = useAnnotations();
   const [filter] = useState('all' as const);
   const [year, setYear] = useState<number | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
@@ -212,6 +214,7 @@ function Dashboard() {
                   <RouteMap
                     activities={provinceFiltered}
                     allActivities={activities}
+                    annotations={annotations}
                     selectedActivity={selectedActivity}
                     dark={dark}
                     onClearSelection={() => setSelectedActivity(null)}

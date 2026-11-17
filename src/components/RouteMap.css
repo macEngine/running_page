@@ -87,34 +87,60 @@
   font-size: 13px;
 }
 
-/* Hover popup over a route — same look as the thumbnail hover card. */
+/* Hover popup over a route — same card as the thumbnail hover card on the
+   tracks page: bold title, then small uppercase labels over their values. */
 .route-hover-popup {
   pointer-events: none;
   z-index: 20;
 }
 .route-hover-popup .mapboxgl-popup-content {
-  padding: 8px 12px;
+  width: 300px;
+  padding: 12px 16px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--color-card);
   color: var(--color-text);
-  font-size: 12px;
-  line-height: 20px;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3);
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.3);
 }
 .route-hover-popup .mapboxgl-popup-tip {
   border-top-color: var(--color-card);
   border-bottom-color: var(--color-card);
 }
-.route-hover-popup .hover-card {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  column-gap: 12px;
+.route-hover-popup .hover-card-title {
+  font-size: 15px;
+  font-weight: 700;
 }
 .route-hover-popup .hover-card-label {
+  margin-top: 8px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--color-muted);
 }
 .route-hover-popup .hover-card-value {
-  min-width: 0;
   overflow-wrap: anywhere;
+}
+.route-hover-popup .hover-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 2px;
+}
+.route-hover-popup .hover-card-tags span {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.route-hover-popup .hover-card-link {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }

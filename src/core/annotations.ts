@@ -21,6 +21,11 @@
 import annotationsUrl from '@/static/annotations.json?url';
 
 export interface Annotation {
+  /**
+   * Heading of the hover card, e.g. "居庸关长城". Searchable. Falls back to
+   * "<type> <distance> km" when empty.
+   */
+  title?: string;
   /** Free-form labels, e.g. ["三里屯", "夜跑"]. Searchable. */
   tags?: string[];
   /** Free-form note for this activity. Searchable. */
@@ -65,9 +70,14 @@ function sanitize(raw: unknown): AnnotationMap {
         )
       : [];
     const note = typeof entry.note === 'string' ? entry.note : '';
+    const title = typeof entry.title === 'string' ? entry.title.trim() : '';
     const link = sanitizeLink(entry.link);
-    if (tags.length === 0 && note.trim() === '' && link === '') continue;
-    out[key] = link === '' ? { tags, note } : { tags, note, link };
+    if (tags.length === 0 && note.trim() === '' && title === '' && link === '')
+      continue;
+    const clean: Annotation = { tags, note };
+    if (title !== '') clean.title = title;
+    if (link !== '') clean.link = link;
+    out[key] = clean;
   }
   return out;
 }
@@ -144,7 +154,11 @@ export function matchesAnnotation(
     if (!requiredTags.every((tag) => tags.includes(tag))) return false;
   }
   if (terms.length === 0) return true;
-  const haystack = [...(entry?.tags ?? []), entry?.note ?? '']
+  const haystack = [
+    entry?.title ?? '',
+    ...(entry?.tags ?? []),
+    entry?.note ?? '',
+  ]
     .join('\n')
     .toLowerCase();
   return terms.every((term) => haystack.includes(term));

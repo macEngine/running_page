@@ -5,7 +5,7 @@ import * as polyline from '@mapbox/polyline';
 import type { Activity } from '../types';
 import { hasRoute, routeForActivity } from '../core/routeFallback';
 import type { AnnotationMap } from '../core/annotations';
-import { buildHoverRows, hoverRowsToHtml } from '../core/hoverCard';
+import { buildHoverCard, hoverCardToHtml } from '../core/hoverCard';
 import { MAPBOX_TOKEN } from '../config';
 import { useLocale } from '../hooks/useLocale';
 import './RouteMap.css';
@@ -250,13 +250,13 @@ export function RouteMapCanvas({
       if (key !== hoveredKey) {
         hoveredKey = key ?? null;
         popup.setHTML(
-          `<div class="hover-card">${hoverRowsToHtml(
-            buildHoverRows(
+          hoverCardToHtml(
+            buildHoverCard(
               activity,
               annotations?.[activity.start_date_local],
               locale
             )
-          )}</div>`
+          )
         );
       }
       popup.setLngLat(event.lngLat);

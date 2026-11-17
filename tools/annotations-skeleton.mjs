@@ -6,7 +6,7 @@
  *
  * - Adds a row for every activity in src/static/activities.json, keyed by
  *   start_date_local (see src/core/annotations.ts for why not run_id).
- * - Preserves any tags/note/link already written; never deletes your edits.
+ * - Preserves any title/tags/note/link already written; never deletes your edits.
  * - Rewrites `_label`, which exists purely so the file is readable by hand.
  * - Rows whose activity no longer exists are kept and marked, so a failed sync
  *   can never silently drop your annotations.
@@ -57,6 +57,7 @@ for (const activity of [...activities].sort((a, b) =>
   const previous = existing[key] ?? {};
   byStartDateLocal[key] = {
     _label: label(activity),
+    title: previous.title ?? '',
     tags: previous.tags ?? [],
     note: previous.note ?? '',
     link: previous.link ?? '',
@@ -64,6 +65,7 @@ for (const activity of [...activities].sort((a, b) =>
 }
 
 const hasAnyContent = (entry) =>
+  (entry.title ?? '').trim() !== '' ||
   (entry.tags?.length ?? 0) > 0 ||
   (entry.note ?? '').trim() !== '' ||
   (entry.link ?? '').trim() !== '';
