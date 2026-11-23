@@ -23,6 +23,8 @@ on:
       - run_page/oppo_sync.py
       - run_page/intervals_icu_sync.py
       - requirements.txt
+      # Manual trigger without the Actions UI: touch this file and push.
+      - .github/sync-trigger
 
 env:
   RUN_TYPE: keep
